@@ -1,1 +1,1 @@
-from parser.parser import Parser
+from parser.parser import WikkeoParser

@@ -1,8 +1,8 @@
-from parser import Parser
+from parser import WikkeoParser
 
 
 def main():
-    parser = Parser()
+    parser = WikkeoParser()
     print(parser.get_category())
     a = parser.get_products_list('Электроника')
     for i in a:

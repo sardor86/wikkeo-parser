@@ -1,12 +1,12 @@
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, InvalidArgumentException
 from selenium.webdriver.common.by import By
 
-from parser.base import BaseDriver
+from .base import BaseDriver
 
 
-class Parser(BaseDriver):
+class WikkeoParser(BaseDriver):
     def __init__(self):
-        super(Parser, self).__init__()
+        super(WikkeoParser, self).__init__()
         self.category = {}
 
     def get_category(self):
@@ -14,12 +14,12 @@ class Parser(BaseDriver):
         self.driver_sleep(10, 'header-category__button')
         self.find_element(By.CLASS_NAME, 'header-category__button').click()
         for category in self.find_elements(By.CLASS_NAME, 'categories-block__general-item'):
-            self.category[category.text] = category.find_element(By.TAG_NAME, 'a').get_attribute('href')
+            self.category[category.text[0:29]] = category.find_element(By.TAG_NAME, 'a').get_attribute('href')
 
         return self.category
 
-    def get_products_list(self, category: str):
-        self.get(self.category[category])
+    def get_products_list(self, category: str, min_price: int = 0, max_price: int = 99999999):
+        self.get(f'{self.category[category]}?min_price={min_price}&max_price={max_price}')
         self.driver_sleep(5, 'product-list-block-list-item')
 
         products = []
@@ -36,20 +36,24 @@ class Parser(BaseDriver):
         return products
 
     def get_product_details(self, url):
-        self.get(url)
-        self.driver_sleep(5, 'product-header-info__title')
         try:
-            price = self.find_element(By.CLASS_NAME, 'product-selection__option-list-state-price')
-        except NoSuchElementException:
+            self.get(url)
+            self.driver_sleep(5, 'product-header-info__title')
             try:
-                price = self.find_element(By.CLASS_NAME, 'product-selection__option-list-item-discount-price')
+                price = self.find_element(By.CLASS_NAME, 'product-selection__option-list-state-price')
             except NoSuchElementException:
-                price = self.find_element(By.CLASS_NAME, 'product-selection_'
-                                                         '_option-list-sum-price-list-item-info-value')
-        product_detail = {
-            'name': self.find_element(By.CLASS_NAME, 'product-header-info__title').text,
-            'price': price.text,
-            'description': self.find_element(By.CLASS_NAME, 'description__value').text
-        }
+                try:
+                    price = self.find_element(By.CLASS_NAME, 'product-selection__option-list-item-discount-price')
+                except NoSuchElementException:
+                    price = self.find_element(By.CLASS_NAME, 'product-selection_'
+                                                             '_option-list-sum-price-list-item-info-value')
+            product_detail = {
+                'name': self.find_element(By.CLASS_NAME, 'product-header-info__title').text,
+                'price': price.text,
+                'description': self.find_element(By.CLASS_NAME, 'description__value').text
+            }
 
-        return product_detail
+            return product_detail
+        except (InvalidArgumentException, NoSuchElementException):
+            return None
+        
